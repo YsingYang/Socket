@@ -1,0 +1,23 @@
+# depslib dependency file v1.0
+1491137522 source:/home/ysing/codeblock Projects/Socket/Server.cpp
+	<stdio.h>
+	<stdlib.h>
+	<string.h>
+	<errno.h>
+	<sys/types.h>
+	<sys/socket.h>
+	<netinet/in.h>
+	<unistd.h>
+	<iostream>
+
+1491133671 source:/home/ysing/codeblock Projects/Socket/Client.cpp
+	<stdio.h>
+	<stdlib.h>
+	<string.h>
+	<errno.h>
+	<sys/types.h>
+	<sys/socket.h>
+	<netinet/in.h>
+	<unistd.h>
+	<arpa/inet.h>
+
