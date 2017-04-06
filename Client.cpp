@@ -47,7 +47,7 @@ void process_conn_client(int &s){///这个s只是一个整型，只不过再内�
 
     while(1){
         size = read(0,buffer,1024);///read()会把参数fd 所指的文件传送count 个字节到buf 指针所指的内存中.0表示标准输入读取
-        buffer[size] = '\0';
+        buffer[size] = '\0';///对于c程序来说，buffer接收到字符串后最好记得+‘、0’;
         cout<<buffer<<endl;
 
         if(size>0){
