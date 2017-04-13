@@ -1,5 +1,5 @@
 # depslib dependency file v1.0
-1491137522 source:/home/ysing/codeblock Projects/Socket/Server.cpp
+1492009105 source:/home/ysing/codeblock Projects/Socket/Server.cpp
 	<stdio.h>
 	<stdlib.h>
 	<string.h>
@@ -7,10 +7,16 @@
 	<sys/types.h>
 	<sys/socket.h>
 	<netinet/in.h>
+	<arpa/inet.h>
 	<unistd.h>
 	<iostream>
+	<signal.h>
+	<wait.h>
+	<sys/uio.h>
+	<stack>
+	<fcntl.h>
 
-1491133671 source:/home/ysing/codeblock Projects/Socket/Client.cpp
+1491828645 source:/home/ysing/codeblock Projects/Socket/Client.cpp
 	<stdio.h>
 	<stdlib.h>
 	<string.h>
@@ -20,4 +26,6 @@
 	<netinet/in.h>
 	<unistd.h>
 	<arpa/inet.h>
+	<iostream>
+	<sys/uio.h>
 
