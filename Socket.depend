@@ -1,5 +1,5 @@
 # depslib dependency file v1.0
-1492009105 source:/home/ysing/codeblock Projects/Socket/Server.cpp
+1492094733 source:/home/ysing/codeblock Projects/Socket/Server.cpp
 	<stdio.h>
 	<stdlib.h>
 	<string.h>
@@ -15,6 +15,9 @@
 	<sys/uio.h>
 	<stack>
 	<fcntl.h>
+	<vector>
+	<unordered_map>
+	<linux/tcp.h>
 
 1491828645 source:/home/ysing/codeblock Projects/Socket/Client.cpp
 	<stdio.h>

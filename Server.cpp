@@ -13,9 +13,17 @@
 #include<sys/uio.h>///这个h是干嘛的
 #include<stack>
 #include<fcntl.h>
+#include<vector>
+#include<unordered_map>
 #include<linux/tcp.h>///tcp_info
 #define MAXLINE 4096
+/***
+缺陷 1 . 如何在stack中没有空余位置时发送给客户端,让客户端直接终止
+          2 . 我希望能存储客户端更多的信息,IP地址+ 端口
+          3 . 超过相应的字符长度应该怎么处理?
+          4 . 客户端show返回是被read(0)给阻塞了
 
+***/
 using namespace std;
 
 static struct iovec *vs = NULL;///定义一个全局的变量vs,用来接管malloc出的iovc
@@ -23,13 +31,19 @@ static struct iovec *vs = NULL;///定义一个全局的变量vs,用来接管mall
 bool getConnectionState(int fd);
 void sig_process(int sign);
 void sig_pipe(int sign);
+void ReplyState2Client(const int &fd);
+void requestUserName(const int &fd);
+void showOnlineUser(const int &fd);
 //void process_conn_server(const int &);
 
+unordered_map<int,vector<string>> user;///全局变量,用于记录fd->user 端口+地址的映射
 
 int main(){
     int sockfd,connfd;
     ///定义sockfd与用于建立服务器绑定文件描述符，connfd用于处理连接请求的描述符
-    struct sockaddr_in server_addr;
+    struct sockaddr_in server_addr,client_addr;
+    socklen_t client_len;
+    client_len = sizeof(client_addr);
     ///char buff[4096];///用于接收的缓冲区
 
     ///挂载信号
@@ -71,42 +85,83 @@ int main(){
     printf("=========waiting for client's request======\n");
     while(1){
         //cout<<"watring "<<endl;
+        usleep(10000);
+        /**
+            轮巡查找是否有已经断开了的客户端(意外断开与断开一起)
+        **/
         for(int i=0;i<5;++i){
             if(connection[i]!=0&&!getConnectionState(connection[i])){
                 freefd.push(i);
                 close(connection[i]);
                 connection[i] = 0;
                 cout<<"Connection   ["<<i<<  "]  disconnect  push it into stack "<<endl;///为了效率的话可以放再fd>0里面的
-
             }
         }
-        connfd = accept(sockfd, (struct sockaddr*)NULL, NULL);
+        /**
+            非阻塞accept,如果connfd>0,表示有连接进入,对当前连接进行处理,同时将它保存在一个数组中.
+        **/
+        connfd = accept(sockfd, (struct sockaddr*)&client_addr, &client_len);///这里的client_len要传入引用
         if(connfd>0){
             if(freefd.empty()){
+                printf("Not enough space to add connection \n");
                 close(connfd);
                 continue;
             }
-            cout<<"connect succsss"<<endl;
-            if(connfd>0){
-                connection[freefd.top()] = connfd;
-                freefd.pop();
+            cout<<"Client  "<< freefd.top() <<" connect succsss"<<endl;
+            ReplyState2Client(connfd);
+            connection[freefd.top()] = connfd;
+            freefd.pop();
+            /***
+                下为输出测试,测试是否能将客户端连接的ip以及端口正常的输出出来.
+            **/
+            //char *userAddr;
+            struct in_addr ClientAddr;
+            ClientAddr.s_addr = client_addr.sin_addr.s_addr;
+            string userAddr(inet_ntoa(ClientAddr));
+
+            char *tmp = const_cast<char *>(userAddr.c_str());
+            printf("%s\n",tmp);
+            user[connfd] = {"",userAddr,to_string(ntohs(client_addr.sin_port))};
+            /***
+                请求客户端发送username 以便记录
+            **/
+            requestUserName(connfd);
+            for(auto it:user){
+                    cout<<it.first<<"     "<<it.second[0]<<"  "<<it.second[1]<<"  "<<it.second[2]<<endl;
             }
-            cout<<connfd<<"  "<<freefd.size()<<endl;
        }
+
+       /***
+          轮巡是否有客户端给服务器发送了信息.
+       */
         for(int i=0;i<5;++i){
-            if(int n = recv(connection[i],buff,MAXLINE,MSG_DONTWAIT)>0){
-            //int n = recv(connfd,buff,MAXLINE,0);///recv为接收返回的套接字长度,如果为-1则发生错误
-          //  buff[n] = '\0';///记得用的是char[],需要将\n补上
-                printf("recv msg from client: %s  \n", buff);
-            /*
-            sprintf(buff,"%d bytes altogether\n",n);
-            cout<<(int)strlen(buff)<<endl;
-            write(connfd,buff,strlen(buff));*/
+            int n;
+            memset((void*)buff,0,sizeof(buff));
+            if((n = recv(connection[i],buff,MAXLINE,MSG_DONTWAIT))>0){///虽说收到会自动加上一个[\n]
+                printf("%s",buff);
+                if(strcmp(buff,"show\n")==0){
+                    showOnlineUser(connection[i]);
+                }
+                else///待补充其他接受返回函数
+                    printf("recv msg from client[%d]: %s",i, buff);
             }
         }
-        //close(connfd);///记得close刚刚accept用的fd;
     }
     close(sockfd);
+}
+
+/***
+    查看连接状态
+**/
+
+void showOnlineUser(const int &fd){
+    cout<<"成功执行该函数"<<endl;
+    string tmp;
+    for(auto iter:user){
+        tmp += iter.second[0] + '\n';
+    }
+    int size = tmp.size();
+    send(fd,(void *)const_cast<char *>(tmp.c_str()),size,0);
 }
 
 bool getConnectionState(int fd){
@@ -116,6 +171,26 @@ bool getConnectionState(int fd){
     if((info.tcpi_state==1))
         return true;
     return false;
+}
+/***
+    回复客户端连接成功的状态
+***/
+void ReplyState2Client(const int &fd){
+    char buff[20];
+    sprintf(buff,"Connect successful\n");
+    send(fd,buff,strlen(buff),MSG_DONTROUTE);
+}
+
+void requestUserName(const int &fd){
+    char buffer[32];
+    sprintf(buffer,"Please input your username");
+    printf("%s\n",buffer);
+    send(fd,buffer,strlen(buffer),MSG_DONTWAIT);///这里设置为非阻塞有没有问题
+    char recvBuffer[32];
+    int size;
+    if((size = recv(fd,recvBuffer,32,0))>0&&user[fd][0].empty()){
+        user[fd][0] = string(recvBuffer,size-1);///记得减1,发送过来的有一个是'\0'
+    }
 }
 
 void sig_process(int sign){
@@ -130,37 +205,4 @@ void sig_pipe(int sign){
     exit(0);
 }
 
-/*void process_conn_server(const int &fd){
-    char buffer[30];///分配大小为30个char的数组作为存储空间
-    ssize_t size = 0;
 
-    struct iovec *v = (struct iovec*)malloc(3*sizeof(struct iovec));
-
-    if(v==NULL){
-        printf("Not enough memory\n");///如果没有足够的内存，malloc失败
-    }
-
-    vs = v;
-    v[0].iov_base = buffer;
-    v[1].iov_base = buffer +10;
-    v[2].iov_base = buffer + 20;///这样子存储很容易造成溢出把.
-    v[0].iov_len = v[1].iov_len = v[2].iov_len = 10;
-
-    for(;;){
-        size = readv(fd,vs,1);///最后的3表示缓冲区的大小
-        if(size==0)
-                return;
-
-        printf("%s",(char*)v[0].iov_base);
-
-        sprintf((char*)(v[0].iov_base),"%d  ",size);
-        sprintf((char*)(v[1].iov_base),"bytes alt ");
-        sprintf((char*)(v[2].iov_base),"ogether\n");
-
-        v[0].iov_len = strlen((char*)v[0].iov_base);
-        v[1].iov_len = strlen((char*)v[1].iov_base);
-        v[2].iov_len = strlen((char*)v[2].iov_base);
-
-        writev(fd,vs,3);///放松回客户端
-    }
-}*/

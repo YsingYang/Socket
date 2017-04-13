@@ -40,8 +40,6 @@ int main(){
     if(connect(s,(struct sockaddr*)&server_addr,sizeof(server_addr))<0)
         cout<<"error "<<endl;
      ssize_t size = 0;
-    char buffer[1024];
-
     process_conn_client(s);///客户端对套接字的处理
 
     close(s);
@@ -51,54 +49,34 @@ int main(){
 void process_conn_client(const int &s){///这个s只是一个整型，只不过再内核中绑定了响应的socket服务
     ssize_t size = 0;
     char buffer[1024];
-
+    char recvBuffer[1024];
+    /**
+        等待客户端发送回复,如果stack没有足够的空间,会有0,否则回应successful
+        似乎不能使用非阻塞,不然的话客户端跑得比服务器快的话,recv就已经过了还没有收到相应的回复
+    **/
+    if(recv(s,recvBuffer,1024,0) == 0){
+                printf("the other side has been closed \n");
+                return ;
+    }
+    printf("%s\n",recvBuffer);
     while(1){
+        /**
+            接收从服务器发送过来的数据
+        */
+        memset((void*)recvBuffer,0,sizeof(recvBuffer));
+        if(recv(s,recvBuffer,1024,MSG_DONTWAIT)>0)
+            printf("%s\n",recvBuffer);
+
+
+        /**
+            准备发送给服务器的数据
+        **/
+        memset((void*)buffer,0,sizeof(buffer));
         size = read(0,buffer,1024);///read()会把参数fd 所指的文件传送count 个字节到buf 指针所指的内存中.0表示标准输入读取
-        buffer[size] = '\0';///对于c程序来说，buffer接收到字符串后最好记得+‘、0’;
+        ///buffer[size] = '\0';///对于c程序来说，buffer接收到字符串后最好记得+‘、0’;
         if(size>0){
-            send(s,buffer,size,0);
+            send(s,buffer,strlen(buffer),0);
         }
     }
 }
 
-
-/*void process_conn_client(const int &s){
-    char buffer[30];
-    ssize_t size = 0;
-
-    struct iovec *v = (struct iovec*)malloc(3*sizeof(iovec));///默认就是10吗？
-
-    if(v==NULL){
-        printf("Not enough memory\n");
-        return ;
-    }
-
-    vc = v;
-
-    v[0].iov_base = buffer;
-    v[1].iov_base = buffer +10;
-    v[2].iov_base = buffer +20;
-
-    v[0].iov_len = v[1].iov_len = v[2].iov_len = 10;
-    int i = 0;
-    for(;;){
-        size = read(0,(char *)v[0].iov_base,10);///读取10个字符
-        char * end = v[0].iov_base+size;
-        *end = '\0';
-        if(size>0){
-            v[0].iov_len = size;
-            write(s,v,1);///只写了1个size的iovc
-            v[0].iov_len = v[1].iov_len = v[2].iov_len = 10;///这样的结构很费啊
-
-            size = readv(s,v,3);///从客户端中收到数据
-            for(int i=0;i<3;++i){
-                if(v[i].iov_len>0)
-                    write(1,v[i].iov_base,v[i].iov_len);
-
-            }
-        }
-
-
-    }
-
-}*/
