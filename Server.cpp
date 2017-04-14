@@ -138,7 +138,10 @@ int main(){
             int n;
             memset((void*)buff,0,sizeof(buff));
             if((n = recv(connection[i],buff,MAXLINE,MSG_DONTWAIT))>0){///虽说收到会自动加上一个[\n]
-                printf("%s",buff);
+                if(user[connection[i]][0].empty()){ ///用户未设置用户名
+                    user[connection[i]][0] = string(buff,n-1);
+                    continue;
+                }
                 if(strcmp(buff,"show\n")==0){
                     showOnlineUser(connection[i]);
                 }
@@ -155,7 +158,6 @@ int main(){
 **/
 
 void showOnlineUser(const int &fd){
-    cout<<"成功执行该函数"<<endl;
     string tmp;
     for(auto iter:user){
         tmp += iter.second[0] + '\n';
@@ -176,8 +178,9 @@ bool getConnectionState(int fd){
     回复客户端连接成功的状态
 ***/
 void ReplyState2Client(const int &fd){
-    char buff[20];
+    char buff[30];
     sprintf(buff,"Connect successful\n");
+    printf("%s",buff);
     send(fd,buff,strlen(buff),MSG_DONTROUTE);
 }
 
@@ -192,6 +195,15 @@ void requestUserName(const int &fd){
         user[fd][0] = string(recvBuffer,size-1);///记得减1,发送过来的有一个是'\0'
     }
 }
+
+void setUserName(const int &fd){
+    char recvBuffer[32];
+    int size;
+    if((size=recv(fd,recvBuffer,32,MSG_DONTWAIT))>0){
+        user[fd][0] = string(recvBuffer,size-1);
+    }
+}
+
 
 void sig_process(int sign){
     printf("Catch a signal \n");

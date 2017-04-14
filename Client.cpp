@@ -9,7 +9,7 @@
 #include<arpa/inet.h>
 #include<iostream>
 #include<sys/uio.h>
-
+#include<fcntl.h>
 
 #define MAXLINE 4096
 #define PORT 6666
@@ -37,6 +37,10 @@ int main(){
 
     //inet_pton(AF_INET,argv[1],&server_addr.sin_addr);
 
+    int flags = fcntl(0, F_GETFL, 0);
+    fcntl(0, F_SETFL, flags | O_NONBLOCK);
+
+
     if(connect(s,(struct sockaddr*)&server_addr,sizeof(server_addr))<0)
         cout<<"error "<<endl;
      ssize_t size = 0;
@@ -54,6 +58,7 @@ void process_conn_client(const int &s){///这个s只是一个整型，只不过�
         等待客户端发送回复,如果stack没有足够的空间,会有0,否则回应successful
         似乎不能使用非阻塞,不然的话客户端跑得比服务器快的话,recv就已经过了还没有收到相应的回复
     **/
+    memset((void*)recvBuffer,0,1024);///记得在使用前先memset一下,否则很容易有乱码
     if(recv(s,recvBuffer,1024,0) == 0){
                 printf("the other side has been closed \n");
                 return ;
