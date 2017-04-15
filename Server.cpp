@@ -34,9 +34,13 @@ void sig_pipe(int sign);
 void ReplyState2Client(const int &fd);
 void requestUserName(const int &fd);
 void showOnlineUser(const int &fd);
+void ReplyCMCfail(const int &fd);
+void sendConnectSuc(const int &sfd,const int &dfd);
 //void process_conn_server(const int &);
 
 unordered_map<int,vector<string>> user;///全局变量,用于记录fd->user 端口+地址的映射
+unordered_map<string,int> getUserFd;
+unordered_map<string,string> communication;
 
 int main(){
     int sockfd,connfd;
@@ -119,16 +123,11 @@ int main(){
             ClientAddr.s_addr = client_addr.sin_addr.s_addr;
             string userAddr(inet_ntoa(ClientAddr));
 
-            char *tmp = const_cast<char *>(userAddr.c_str());
-            printf("%s\n",tmp);
             user[connfd] = {"",userAddr,to_string(ntohs(client_addr.sin_port))};
             /***
                 请求客户端发送username 以便记录
             **/
             requestUserName(connfd);
-            for(auto it:user){
-                    cout<<it.first<<"     "<<it.second[0]<<"  "<<it.second[1]<<"  "<<it.second[2]<<endl;
-            }
        }
 
        /***
@@ -139,14 +138,37 @@ int main(){
             memset((void*)buff,0,sizeof(buff));
             if((n = recv(connection[i],buff,MAXLINE,MSG_DONTWAIT))>0){///虽说收到会自动加上一个[\n]
                 if(user[connection[i]][0].empty()){ ///用户未设置用户名
-                    user[connection[i]][0] = string(buff,n-1);
+                    string userName = string(buff,n-1);
+                    user[connection[i]][0] = userName;
+                    getUserFd[userName] = connection[i];///建立user->fd的映射关系
                     continue;
                 }
-                if(strcmp(buff,"show\n")==0){
+                else if(strcmp(buff,"show\n")==0){
                     showOnlineUser(connection[i]);
                 }
-                else///待补充其他接受返回函数
-                    printf("recv msg from client[%d]: %s",i, buff);
+                else{///待补充其他接受返回函数
+                    string recvMsg(buff,n-1);
+                    if(recvMsg.substr(0,3) == "cmc"){///开启communicate
+                        string CMCobj =  recvMsg.substr(4);
+                       // cout<<CMCobj<<"  "<<CMCobj.size()<<" back element "<<CMCobj.back()<<endl;
+                        if(getUserFd.find(CMCobj) == getUserFd.end()){///如过client想要交流的obj不存在,返回一个fail信息
+                            ReplyCMCfail(connection[i]);
+                            continue;
+                        }
+                        /***
+                            处理客户端之间的连接
+                        */
+                        communication[CMCobj] = user[connection[i]][0];
+                        communication[user[connection[i]][0]] = CMCobj;///服务器已为双方完成搭建
+
+                        sendConnectSuc(connection[i],getUserFd[CMCobj]);
+
+                        cout<<"connection successful "<<endl;
+                    }
+                    else{
+                        printf("recv msg from client[%d]: %s",i, buff);///正常的接受数据
+                    }
+                }
             }
         }
     }
@@ -164,6 +186,15 @@ void showOnlineUser(const int &fd){
     }
     int size = tmp.size();
     send(fd,(void *)const_cast<char *>(tmp.c_str()),size,0);
+}
+
+void sendConnectSuc(const int &sfd,const int &dfd){
+    char buff[50];
+    sprintf(buff,"set your Communication with  %d successfully ",dfd);
+    send(sfd,buff,strlen(buff),MSG_DONTWAIT);
+    memset((void*)buff,0,50);
+    sprintf(buff,"set your Communication with  %d successfully ",sfd);
+    send(dfd,buff,strlen(buff),MSG_DONTWAIT);
 }
 
 bool getConnectionState(int fd){
@@ -184,16 +215,23 @@ void ReplyState2Client(const int &fd){
     send(fd,buff,strlen(buff),MSG_DONTROUTE);
 }
 
+void ReplyCMCfail(const int &fd){
+    char buff[30];
+    memset((void*)buff,0,30);
+    sprintf(buff,"User don't exist ");
+    send(fd,buff,strlen(buff),0);
+}
+
 void requestUserName(const int &fd){
     char buffer[32];
     sprintf(buffer,"Please input your username");
     printf("%s\n",buffer);
     send(fd,buffer,strlen(buffer),MSG_DONTWAIT);///这里设置为非阻塞有没有问题
-    char recvBuffer[32];
+   /* char recvBuffer[32];
     int size;
     if((size = recv(fd,recvBuffer,32,0))>0&&user[fd][0].empty()){
         user[fd][0] = string(recvBuffer,size-1);///记得减1,发送过来的有一个是'\0'
-    }
+    }*/
 }
 
 void setUserName(const int &fd){
