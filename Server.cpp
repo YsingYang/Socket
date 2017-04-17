@@ -21,8 +21,11 @@
 缺陷 1 . 如何在stack中没有空余位置时发送给客户端,让客户端直接终止
           2 . 我希望能存储客户端更多的信息,IP地址+ 端口
           3 . 超过相应的字符长度应该怎么处理?
-          4 . 客户端show返回是被read(0)给阻塞了
-
+          4 . 客户端show返回是被read(0)给阻塞了  : 解决方案 : read(0)设为非阻塞
+          5. 注意处理几个额外的问题,如果两个客户端在沟通时断开怎么办,
+          6. 怎么处理客户端想主动断开连接
+          7. 如果客户端在与某个客户端交流时又向与另一个客户端交流怎么办
+          8. 怎么处理自己与自己沟通.
 ***/
 using namespace std;
 
@@ -36,11 +39,12 @@ void requestUserName(const int &fd);
 void showOnlineUser(const int &fd);
 void ReplyCMCfail(const int &fd);
 void sendConnectSuc(const int &sfd,const int &dfd);
+void sendDownLineNote(const int &fd);
 //void process_conn_server(const int &);
 
 unordered_map<int,vector<string>> user;///全局变量,用于记录fd->user 端口+地址的映射
 unordered_map<string,int> getUserFd;
-unordered_map<string,string> communication;
+unordered_map<int,int> communication;
 
 int main(){
     int sockfd,connfd;
@@ -90,13 +94,36 @@ int main(){
     while(1){
         //cout<<"watring "<<endl;
         usleep(10000);
+
+
         /**
-            轮巡查找是否有已经断开了的客户端(意外断开与断开一起)
+        下面for循环处理 轮巡查找是否有已经断开了的客户端(意外断开与断开一起)
+             几个注意的情况
+             1. 客户端处于与其他客户端的连接通信中.
+             2. 暂时没想到
         **/
         for(int i=0;i<5;++i){
             if(connection[i]!=0&&!getConnectionState(connection[i])){
                 freefd.push(i);
-                close(connection[i]);
+
+                ///处理连接状态中的客户端
+                string username = user[connection[i]][0];///获取该fd的username
+                user.erase(connection[i]);
+                cout<<"user name erase successfully,"<<endl;
+                ///删除getUserFd中的哈西
+                getUserFd.erase(username);
+                cout<<"getUserFd erase successfully "<<endl;
+                if(communication.find(connection[i])!=communication.end()){///该用户处于连接状态,取该用户正在通信的中的用户,告知其用户downline
+                    int dest  = communication[connection[i]];
+                    sendDownLineNote(dest);
+                    ///断开双方连接
+                    communication.erase(communication[connection[i]]);
+                    communication.erase(connection[i]);
+
+                    cout<<"communication disconnect successfully"<<endl;
+
+                }
+                close(connection[i]);///注意处理
                 connection[i] = 0;
                 cout<<"Connection   ["<<i<<  "]  disconnect  push it into stack "<<endl;///为了效率的话可以放再fd>0里面的
             }
@@ -118,7 +145,7 @@ int main(){
             /***
                 下为输出测试,测试是否能将客户端连接的ip以及端口正常的输出出来.
             **/
-            //char *userAddr;
+
             struct in_addr ClientAddr;
             ClientAddr.s_addr = client_addr.sin_addr.s_addr;
             string userAddr(inet_ntoa(ClientAddr));
@@ -143,6 +170,14 @@ int main(){
                     getUserFd[userName] = connection[i];///建立user->fd的映射关系
                     continue;
                 }
+                /***
+                    如果communication中存在该用户,那么服务器收到该信息应该转发给相应的用户
+                */
+                else if(communication.find(connection[i])!=communication.end()){
+                    int dest = communication[connection[i]];
+                    send(dest,buff,strlen(buff),0);
+
+                }
                 else if(strcmp(buff,"show\n")==0){
                     showOnlineUser(connection[i]);
                 }
@@ -158,12 +193,12 @@ int main(){
                         /***
                             处理客户端之间的连接
                         */
-                        communication[CMCobj] = user[connection[i]][0];
-                        communication[user[connection[i]][0]] = CMCobj;///服务器已为双方完成搭建
+                        communication[getUserFd[CMCobj]] = connection[i];
+                        communication[connection[i]] = getUserFd[CMCobj];///服务器已为双方完成搭建
 
-                        sendConnectSuc(connection[i],getUserFd[CMCobj]);
+                        sendConnectSuc(connection[i],getUserFd[CMCobj]);///发送给双方连接成功的信息
 
-                        cout<<"connection successful "<<endl;
+                        cout<<"create connection successful "<<endl;
                     }
                     else{
                         printf("recv msg from client[%d]: %s",i, buff);///正常的接受数据
@@ -188,12 +223,23 @@ void showOnlineUser(const int &fd){
     send(fd,(void *)const_cast<char *>(tmp.c_str()),size,0);
 }
 
+
+/**
+    该函数用于正在通信的用户突然断线来告知对方用户
+*/
+void sendDownLineNote(const int &fd){
+    char buff[200];
+    memset((void*)buff,0,200);
+    sprintf(buff,"Client which you communicating with has been offline,You can chose other user you want to communicate with\n");
+    send(fd,buff,strlen(buff),0);
+}
+
 void sendConnectSuc(const int &sfd,const int &dfd){
-    char buff[50];
-    sprintf(buff,"set your Communication with  %d successfully ",dfd);
+    char buff[100];
+    sprintf(buff,"set your Communication with  %s successfully\n",user[dfd][0].c_str());
     send(sfd,buff,strlen(buff),MSG_DONTWAIT);
     memset((void*)buff,0,50);
-    sprintf(buff,"set your Communication with  %d successfully ",sfd);
+    sprintf(buff,"set your Communication with  %s successfully\n",user[sfd][0].c_str());
     send(dfd,buff,strlen(buff),MSG_DONTWAIT);
 }
 
@@ -218,20 +264,14 @@ void ReplyState2Client(const int &fd){
 void ReplyCMCfail(const int &fd){
     char buff[30];
     memset((void*)buff,0,30);
-    sprintf(buff,"User don't exist ");
+    sprintf(buff,"User don't exist\n");
     send(fd,buff,strlen(buff),0);
 }
 
 void requestUserName(const int &fd){
     char buffer[32];
-    sprintf(buffer,"Please input your username");
-    printf("%s\n",buffer);
+    sprintf(buffer,"Please input your username\n");
     send(fd,buffer,strlen(buffer),MSG_DONTWAIT);///这里设置为非阻塞有没有问题
-   /* char recvBuffer[32];
-    int size;
-    if((size = recv(fd,recvBuffer,32,0))>0&&user[fd][0].empty()){
-        user[fd][0] = string(recvBuffer,size-1);///记得减1,发送过来的有一个是'\0'
-    }*/
 }
 
 void setUserName(const int &fd){

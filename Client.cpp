@@ -63,14 +63,14 @@ void process_conn_client(const int &s){///这个s只是一个整型，只不过�
                 printf("the other side has been closed \n");
                 return ;
     }
-    printf("%s\n",recvBuffer);
+    printf("%s",recvBuffer);
     while(1){
         /**
             接收从服务器发送过来的数据
         */
         memset((void*)recvBuffer,0,sizeof(recvBuffer));
         if(recv(s,recvBuffer,1024,MSG_DONTWAIT)>0)
-            printf("%s\n",recvBuffer);
+            printf("%s",recvBuffer);
 
 
         /**
