@@ -31,8 +31,10 @@
 		<Compiler>
 			<Add option="-Wall" />
 		</Compiler>
-		<Unit filename="Server.cpp" />
 		<Unit filename="Socket.cbp" />
+		<Unit filename="UnixProgramming/Chatper5SocketServer.cpp" />
+		<Unit filename="UnixProgramming/Client.h" />
+		<Unit filename="UnixProgramming/server.h" />
 		<Extensions>
 			<code_completion />
 			<debugger />
