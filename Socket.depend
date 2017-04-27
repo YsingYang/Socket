@@ -118,3 +118,43 @@
 	<string.h>
 	<errno.h>
 
+1493125226 source:/home/ysing/codeblock Projects/Socket/UnixProgramming/IOMultiplexing/IOmultiplexingClient.cpp
+	"pollClient.h"
+
+1493214449 source:/home/ysing/codeblock Projects/Socket/UnixProgramming/IOMultiplexing/IOmultiplexingServer.cpp
+	"pollService.h"
+
+1493293280 /home/ysing/codeblock Projects/Socket/UnixProgramming/IOMultiplexing/pollService.h
+	<algorithm>
+	<unistd.h>
+	<stdlib.h>
+	<stdio.h>
+	<sys/socket.h>
+	<sys/types.h>
+	<netinet/in.h>
+	<arpa/inet.h>
+	<signal.h>
+	<wait.h>
+	<sys/uio.h>
+	<string.h>
+	<limits.h>
+	<errno.h>
+	<sys/poll.h>
+
+1493214417 /home/ysing/codeblock Projects/Socket/UnixProgramming/IOMultiplexing/pollClient.h
+	<algorithm>
+	<unistd.h>
+	<stdlib.h>
+	<stdio.h>
+	<sys/socket.h>
+	<sys/types.h>
+	<netinet/in.h>
+	<arpa/inet.h>
+	<signal.h>
+	<wait.h>
+	<sys/uio.h>
+	<string.h>
+	<limits.h>
+	<errno.h>
+	<sys/poll.h>
+

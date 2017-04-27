@@ -32,8 +32,10 @@
 			<Add option="-Wall" />
 		</Compiler>
 		<Unit filename="Socket.cbp" />
-		<Unit filename="UnixProgramming/Chatper5SocketServer.cpp" />
 		<Unit filename="UnixProgramming/Client.h" />
+		<Unit filename="UnixProgramming/IOMultiplexing/IOmultiplexingServer.cpp" />
+		<Unit filename="UnixProgramming/IOMultiplexing/pollClient.h" />
+		<Unit filename="UnixProgramming/IOMultiplexing/pollService.h" />
 		<Unit filename="UnixProgramming/server.h" />
 		<Extensions>
 			<code_completion />
