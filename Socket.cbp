@@ -12,8 +12,12 @@
 				<Option type="1" />
 				<Option compiler="gcc" />
 				<Compiler>
+					<Add option="-std=c++11" />
 					<Add option="-g" />
 				</Compiler>
+				<Linker>
+					<Add library="/lib/x86_64-linux-gnu/libpthread-2.19.so" />
+				</Linker>
 			</Target>
 			<Target title="Release">
 				<Option output="bin/Release/Socket" prefix_auto="1" extension_auto="1" />
@@ -31,11 +35,15 @@
 		<Compiler>
 			<Add option="-Wall" />
 		</Compiler>
+		<Unit filename="MultiPthread/MP_98/ThreadPool.cpp" />
+		<Unit filename="MultiPthread/MP_98/ThreadPool.h" />
+		<Unit filename="MultiPthread/MP_98/main.cpp" />
 		<Unit filename="Socket.cbp" />
 		<Unit filename="UnixProgramming/Client.h" />
-		<Unit filename="UnixProgramming/IOMultiplexing/IOmultiplexingServer.cpp" />
 		<Unit filename="UnixProgramming/IOMultiplexing/pollClient.h" />
 		<Unit filename="UnixProgramming/IOMultiplexing/pollService.h" />
+		<Unit filename="UnixProgramming/UDP_Programming/UDPClient.h" />
+		<Unit filename="UnixProgramming/UDP_Programming/UDPService.h" />
 		<Unit filename="UnixProgramming/server.h" />
 		<Extensions>
 			<code_completion />
