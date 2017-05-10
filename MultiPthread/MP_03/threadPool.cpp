@@ -3,11 +3,11 @@
 #include <assert.h>
 #include <stdlib.h>
 
-///构造函数
-
+//构造函数
 threadPool::threadPool(int threadNum){
     isRunning_ = true;
     threadsNum_ = threadNum;
+    //创建相应数量的线程
     createThreads();
 }
 
@@ -15,7 +15,7 @@ threadPool::~threadPool(){
     stop();
 }
 
-///初始化线程池线程
+//创建相应数量的线程
 int threadPool::createThreads(){
     pthread_mutex_init(&mutex_, NULL);
     pthread_cond_init(&condition_, NULL);
@@ -28,6 +28,7 @@ int threadPool::createThreads(){
     return 0;
 }
 
+//停止线程池, 等待每一个线程join,同时释放掉线程,和mutex,condition变量
 void threadPool::stop(){
     if(!isRunning_){
         return;
@@ -45,6 +46,7 @@ void threadPool::stop(){
     pthread_cond_destroy(&condition_);
 }
 
+//添加任务仅任务队列
 size_t threadPool::addTask(const Task& task){
     pthread_mutex_lock(&mutex_);
 
@@ -63,6 +65,7 @@ int threadPool::size(){
     return size;
 }
 
+//取任务队列中的任务,若队列中没有任务,阻塞在condition中, 同时释放mutex给其他线程使用
 threadPool::Task threadPool::take(){
     Task task = nullptr;
     pthread_mutex_lock(&mutex_);
@@ -83,7 +86,7 @@ threadPool::Task threadPool::take(){
     return task;
 }
 
-
+//线程执行的函数
 void* threadPool::threadFunc(void *arg){
     pthread_t pid = pthread_self();
     threadPool* pool = static_cast<threadPool*>(arg);
@@ -96,7 +99,7 @@ void* threadPool::threadFunc(void *arg){
         }
 
         assert(task);
-        int i =task(); ///调用函数对象,可以通过函数对象获取返回值
+        task(); ///调用函数对象,可以通过函数对象获取返回值
         //printf("res : %d,",i);
     }
     return 0;

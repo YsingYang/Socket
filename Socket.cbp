@@ -12,7 +12,7 @@
 				<Option type="1" />
 				<Option compiler="gcc" />
 				<Compiler>
-					<Add option="-std=c++11" />
+					<Add option="-std=c++14" />
 					<Add option="-g" />
 				</Compiler>
 				<Linker>
@@ -35,11 +35,10 @@
 		<Compiler>
 			<Add option="-Wall" />
 		</Compiler>
-		<Unit filename="MultiPthread/MP_98/ThreadPool.cpp" />
-		<Unit filename="MultiPthread/MP_98/ThreadPool.h" />
-		<Unit filename="MultiPthread/MP_98/main.cpp" />
+		<Unit filename="MultiPthread/MP_03/threadPool.h" />
 		<Unit filename="Socket.cbp" />
 		<Unit filename="UnixProgramming/Client.h" />
+		<Unit filename="UnixProgramming/IOMultiplexing/epollService.cpp" />
 		<Unit filename="UnixProgramming/IOMultiplexing/pollClient.h" />
 		<Unit filename="UnixProgramming/IOMultiplexing/pollService.h" />
 		<Unit filename="UnixProgramming/UDP_Programming/UDPClient.h" />
